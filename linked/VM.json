@@ -1,0 +1,137 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmName": {
+      "type": "array"
+    },
+    "vmAdminUserName": {
+      "type": "string"
+    },
+    "vmAdminPassword": {
+      "type": "securestring"
+    },
+    "vmWindowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2016-Datacenter",
+      "allowedValues": [
+        "2008-R2-SP1",
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "2016-Datacenter",
+        "Windows-Server-Technical-Preview"
+      ]
+    },
+    "subnetName": {
+      "type": "array"
+    },
+    "vNetID": {
+      "type": "string"
+    },
+    "publicipID": {
+      "type": "array"
+    }
+  },
+  "variables": {
+    "vmNicName": {
+      "copy": [
+        {
+          "name": "vmNicName",
+          "count": "[length(parameters('vmName'))]",
+          "input": "[concat(parameters('vmName')[copyIndex('vmNicName')], '-nic')]"
+        }
+      ]
+    },
+    "subnetID": {
+      "copy": [
+        {
+          "name": "subnetID",
+          "count": "[length(parameters('vmName'))]",
+          "input": "[concat(parameters('vNetID'), '/subnets/', parameters('subnetName')[copyIndex('subnetID')])]"
+        }
+      ]
+    },
+    "vmSize": "Standard_D2_v2",
+    "vmImagePublisher": "MicrosoftWindowsServer",
+    "vmImageOffer": "WindowsServer"
+  },
+  "resources": [
+    {
+      "name": "[variables('vmNicName').vmNicName[copyIndex()]]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('subnetID').subnetID[copyIndex('nicCopy')]]"
+              },
+              "publicIPAddress": {
+                "id": "[parameters('publicipID')[copyIndex('nicCopy')]]"
+              }
+            }
+          }
+        ]
+      },
+      "copy": {
+        "name": "nicCopy",
+        "count": "[length(parameters('vmName'))]"
+      }
+    },
+    {
+      "name": "[parameters('vmName')[copyIndex()]]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-10-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNicName').vmNicName[copyIndex()])]"
+      ],
+      "copy": {
+        "name": "vmCopy",
+        "count": "[length(parameters('vmName'))]"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('vmName')[copyIndex()]]",
+          "adminUsername": "[parameters('vmAdminUserName')]",
+          "adminPassword": "[parameters('vmAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('vmImagePublisher')]",
+            "offer": "[variables('vmImageOffer')]",
+            "sku": "[parameters('vmWindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat(parameters('vmName')[copyIndex()], '-osdisk')]",
+            "managedDisk": {
+              "storageAccountType": "StandardSSD_LRS"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNicName').vmNicName[copyIndex()])]"
+            }
+          ]
+        }
+      },
+      "resources": [
+
+      ]
+    }
+  ],
+  "outputs": {}
+}

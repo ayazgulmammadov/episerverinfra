@@ -1,0 +1,74 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmOrWebapp": {
+            "value": "vm"
+        },
+        "vmName": {
+            "value": [
+                "vm-cd",
+                "vm-cm",
+                "vm-search"
+            ]
+        },
+        "vmAdminUserName": {
+            "value": "adminuser"
+        },
+        "vmAdminPassword": {
+            "value": "A123456789a!"
+        },
+        "vNetName": {
+            "value": "episervervnet"
+        },
+        "publicIPDnsName": {
+            "value": [
+                "episrv-cd",
+                "episrv-cm",
+                "episrv-search"
+            ]
+        },
+        "WebAppLocations": {
+            "value": [
+                "westeurope",
+                "centralus",
+                "northeurope"
+            ]
+        },
+        "WebAppName": {
+            "value": [
+                "web-epi-cd",
+                "web-epi-cm",
+                "web-epi-search"
+            ]
+        },
+        "WebAppPlanSkuName": {
+            "value": "S1"
+        },
+        "WebAppCount": {
+            "value": 3
+        },
+        "SqlServerName": {
+            "value": "epi-sql-srv"
+        },
+        "SqlServerAdminLogin": {
+            "value": "sqladminuser"
+        },
+        "SqlServerAdminLoginPassword": {
+            "value": "A123456789a!"
+        },
+        "databaseName": {
+            "value": [
+                "db-epi-cd",
+                "db-epi-cm",
+                "db-epi-search"
+            ]
+        },
+        "databaseEdition": {
+            "value": "Basic"
+        },
+        "databaseSkuName": {
+            "value": "Basic"
+        }
+    }
+}

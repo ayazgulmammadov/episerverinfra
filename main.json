@@ -1,0 +1,230 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmOrWebapp": {
+      "type": "array",
+      "allowedValues": [
+        "vm",
+        "webapp"
+      ]
+    },
+    "vmName": {
+      "type": "array"
+    },
+    "vmAdminUserName": {
+      "type": "string"
+    },
+    "vmAdminPassword": {
+      "type": "securestring"
+    },
+    "vNetName": {
+      "type": "string"
+    },
+    "publicIPDnsName": {
+      "type": "array"
+    },
+    "WebAppLocations": {
+      "type": "array"
+    },
+    "WebAppName": {
+      "type": "array"
+    },
+    "WebAppPlanSkuName": {
+      "type": "string"
+    },
+    "WebAppCount": {
+      "type": "int"
+    },
+    "SqlServerName": {
+      "type": "string"
+    },
+    "SqlServerAdminLogin": {
+      "type": "string"
+    },
+    "SqlServerAdminLoginPassword": {
+      "type": "securestring"
+    },
+    "databaseName": {
+      "type": "array"
+    },
+    "databaseEdition": {
+      "type": "string"
+    },
+    "databaseSkuName": {
+      "type": "string"
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Auto-generated container in staging storage account to receive post-build staging folder upload"
+      }
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Auto-generated token to access _artifactsLocation"
+      }
+    }
+  },
+  "variables": {
+    "publicIPName": {
+      "copy": [
+        {
+          "name": "publicIPName",
+          "count": "[length(parameters('vmName'))]",
+          "input": "[concat(parameters('vmName')[copyIndex('publicIPName')], '-publicip')]"
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "condition": "[equals(parameters('vmOrWebapp'), 'vm')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "name": "publicIP",
+      "dependsOn": [
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/linked/', 'publicIP.json', parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "publicIPCount": {
+            "value": "[length(parameters('vmName'))]"
+          },
+          "publicIPName": {
+            "value": "[variables('publicIPName').publicIPName]"
+          },
+          "publicIPDnsName": {
+            "value": "[parameters('publicIPDnsName')]"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('vmOrWebapp'), 'vm')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "name": "VNet",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/linked/', 'VNet.json', parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "vNetSubnetCount": {
+            "value": "[length(parameters('vmName'))]"
+          },
+          "vNetName": {
+            "value": "[parameters('vNetName')]"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('vmOrWebapp'), 'vm')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "name": "VM",
+      "dependsOn": [
+        "publicIP",
+        "VNet"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/linked/', 'VM.json', parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "vmName": {
+            "value": "[parameters('vmName')]"
+          },
+          "vmAdminUserName": {
+            "value": "[parameters('vmAdminUserName')]"
+          },
+          "vmAdminPassword": {
+            "value": "[parameters('vmAdminPassword')]"
+          },
+          "subnetName": {
+            "value": "[reference('VNet').outputs.Subnets.value]"
+          },
+          "vNetID": {
+            "value": "[reference('VNet').outputs.vNetID.value]"
+          },
+          "publicipID": {
+            "value": "[reference('publicIP').outputs.publicip.value]"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('vmOrWebapp'), 'webapp')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "name": "WebApp",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/linked/', 'webApp.json', parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "WebAppLocations": {
+            "value": "[parameters('WebAppLocations')]"
+          },
+          "WebAppName": {
+            "value": "[parameters('WebAppName')]"
+          },
+          "WebAppPlanSkuName": {
+            "value": "[parameters('WebAppPlanSkuName')]"
+          },
+          "WebAppCount": {
+            "value": "[length(parameters('WebAppName'))]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "name": "Sql",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/linked/', 'SQL.json', parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "SqlServerName": {
+            "value": "[parameters('SqlServerName')]"
+          },
+          "SqlServerAdminLogin": {
+            "value": "[parameters('SqlServerAdminLogin')]"
+          },
+          "SqlServerAdminLoginPassword": {
+            "value": "[parameters('SqlServerAdminLoginPassword')]"
+          },
+          "databaseName": {
+            "value": "[parameters('databaseName')]"
+          },
+          "databaseSkuName": {
+            "value": "[parameters('databaseSkuName')]"
+          },
+          "databaseEdition": {
+            "value": "[parameters('databaseEdition')]"
+          },
+          "databaseCount": {
+            "value": "[length(parameters('databaseName'))]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {}
+}

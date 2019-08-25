@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "publicIPCount": {
+      "type": "int"
+    },
+    "publicIPName": {
+      "type": "array"
+    },
+    "publicIPDnsName": {
+      "type": "array"
+    }
+  },
+  "variables": {
+    "publicIPId": {
+      "copy": [
+        {
+          "name": "publicIPId",
+          "count": "[length(parameters('publicIPName'))]",
+          "input": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName')[copyIndex('publicIPId')])]"
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "name": "[parameters('publicIPName')[copyIndex()]]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2019-04-01",
+      "dependsOn": [],
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[parameters('publicIPDnsName')[copyIndex()]]"
+        }
+      },
+      "copy": {
+        "name": "publicIPCopy",
+        "count": "[parameters('publicIPCount')]"
+      }
+    }
+  ],
+  "outputs": {
+    "publicip": {
+      "type": "array",
+      "value": "[variables('publicIPId').publicIPId]"
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vNetSubnetCount": {
+      "type": "int"
+    },
+    "vNetName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "vNetPrefix": "10.0.0.0/16",
+    "vNetSubnet": {
+      "copy": [
+        {
+          "name": "subnetName",
+          "count": "[parameters('vNetSubnetCount')]",
+          "input": "[concat('Subnet-', copyIndex('subnetName', 1))]"
+        },
+        {
+          "name": "subnetPrefix",
+          "count": "[parameters('vNetSubnetCount')]",
+          "input": "[concat('10.0.', copyIndex('subnetPrefix'), '.0/24')]"
+        }
+      ]
+    }
+ 
+  },
+  "resources": [
+    {
+      "name": "[parameters('vNetName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [],
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('vNetPrefix')]"
+          ]
+        },
+        "copy": [
+          {
+            "name": "subnets",
+            "count": "[parameters('vNetSubnetCount')]",
+            "input": {
+              "name": "[variables('vNetSubnet').subnetName[copyIndex('subnets')]]",
+              "properties": {
+                "addressPrefix": "[variables('vNetSubnet').subnetPrefix[copyIndex('subnets')]]"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "vNetID": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vNetName'))]"
+    },
+    "Subnets": {
+      "type": "array",
+      "value": "[variables('vNetSubnet').subnetName]"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "WebAppLocations": {
+      "type": "array"
+    },
+    "WebAppName": {
+      "type": "array"
+    },
+    "WebAppCount": {
+      "type": "int"
+    },
+    "WebAppPlanSkuName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "WebAppPlanName": {
+      "copy": [
+        {
+          "name": "WebAppPlanName",
+          "count": "[parameters('WebAppCount')]",
+          "input": "[concat(parameters('WebAppName')[copyIndex('WebAppPlanName')], parameters('WebAppLocations')[copyIndex('WebAppPlanName')], '-plan')]"
+
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "name": "[parameters('WebAppName')[copyIndex()]]",
+      "type": "Microsoft.Web/sites",
+      "location": "[parameters('WebAppLocations')[copyIndex()]]",
+      "apiVersion": "2018-11-01",
+      "dependsOn": [
+        "webappplancopy"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('WebAppPlanName').WebAppPlanName[copyIndex()])]"
+      },
+      "copy": {
+        "name": "webappcopy",
+        "count": "[parameters('WebAppCount')]"
+      }
+    },
+    {
+      "name": "[variables('WebAppPlanName').WebAppPlanName[copyIndex()]]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[parameters('WebAppLocations')[copyIndex()]]",
+      "apiVersion": "2018-02-01",
+      "sku": {
+        "name": "[parameters('WebAppPlanSkuName')]",
+        "capacity": 2
+      },
+      "dependsOn": [],
+      "properties": {},
+      "copy": {
+        "name": "webappplancopy",
+        "count": "[parameters('WebAppCount')]"
+      }
+    }
+  ],
+  "outputs": {
+    "webAppId": {
+      "type": "array",
+      "value": "[parameters('WebAppName')]"
+    }
+  }
+}
